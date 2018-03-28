@@ -1,7 +1,9 @@
 (ns datomic-playground.weather
   (:require [datomic-playground.components.datomic :as sys]
             [com.stuartsierra.component :as component]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [clojure.java.io :as io]
+            [clojure.edn :as edn]))
 
 ;Datom ref
 ;https://docs.datomic.com/cloud/whatis/data-model.html
@@ -23,35 +25,13 @@
 
 (def all-eagle-data (mapv #(into % eagle-station) eagle-data))
 
-(def schema
-  [{:db/ident       :time/toa
-    :db/valueType   :db.type/instant
-    :db/cardinality :db.cardinality/one
-    :db/index       true}
-
-   {:db/ident       :weather/temp
-    :db/valueType   :db.type/double
-    :db/cardinality :db.cardinality/one}
-
-   {:db/ident :weather/station
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one}
-
-   {:db/ident :weather/forecast
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one}
-
-   {:db/ident :weather/forecaster
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one}
-
-   {:db/ident :weather/location
-    :db/valueType :db.type/string
-    :db/cardinality :db.cardinality/one}])
+(def schema (-> "datomic_playground/weather_schema.edn" io/resource slurp edn/read-string))
 
 (sys/stop)
 (sys/start {:db-uri "datomic:mem://weather"})
 (def conn (:conn sys/*db*))
+
+;(map #(into {} %) (d/tx-range (d/log conn) nil nil))
 
 (defn load-data [conn]
   (reduce
@@ -68,17 +48,22 @@
 (d/pull (d/db conn) '[*] 1)
 
 (defn get-transaction-details [conn]
-  (let [v (d/q
-            '[:find [?toa ?t-toa ?temp ?t-temp ?forecast ?t-forecast ?forecaster ?t-forecaster]
-              :in $ ?e
-              :where
-              [?e :time/toa ?toa ?t-toa]
-              [?e :weather/temp ?temp ?t-temp]
-              [?e :weather/forecast ?forecast ?t-forecast]
-              [?e :weather/forecaster ?forecaster ?t-forecaster]]
-            (d/db conn) 1)]
-    (zipmap [:toa :t-toa :temp :t-temp :forecast :t-forecast :forecaster :t-forecaster]
-            v)))
+  (d/q
+    '[:find [?toa ?t-toa ?temp ?t-temp ?forecast ?t-forecast ?forecaster ?t-forecaster]
+      :in $ ?e
+      :where
+      [?e :time/toa ?toa ?t-toa]
+      [?e :weather/temp ?temp ?t-temp]
+      [?e :weather/forecast ?forecast ?t-forecast]
+      [?e :weather/forecaster ?forecaster ?t-forecaster]]
+    (d/db conn) 1))
+
+(let [v (get-transaction-details conn)
+      p (partition 2 v)]
+  (map (fn [[k v]]
+         [k
+          (d/pull (d/as-of (d/db conn) v) '[*] 1)]) p))
+
 
 (d/q
   '[:find ?e ?fc ?t
