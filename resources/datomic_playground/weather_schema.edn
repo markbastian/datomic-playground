@@ -1,14 +1,20 @@
-[{:db/ident       :time/toa
+[ {:db/ident :weather/location
+   :db/unique :db.unique/identity
+   :db/valueType :db.type/string
+   :db/cardinality :db.cardinality/one}
+
+ {:db/ident :weather/station
+  :db/unique :db.unique/identity
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one}
+
+ {:db/ident       :time/toa
   :db/valueType   :db.type/instant
   :db/cardinality :db.cardinality/one
   :db/index       true}
 
  {:db/ident       :weather/temp
   :db/valueType   :db.type/double
-  :db/cardinality :db.cardinality/one}
-
- {:db/ident :weather/station
-  :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one}
 
  {:db/ident :weather/forecast
@@ -19,6 +25,4 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one}
 
- {:db/ident :weather/location
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one}]
+]
