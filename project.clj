@@ -7,4 +7,9 @@
                  [clj-time "0.14.2"]
                  [com.stuartsierra/component "0.3.2"]
                  [com.taoensso/timbre "4.10.0"]
-                 [com.datomic/datomic-free "0.9.5661"]])
+                 ;Free
+                 ;[com.datomic/datomic-free "0.9.5661"]
+                 ;Time to go big time
+                 [org.clojure/java.jdbc "0.7.5"]
+                 [com.datomic/datomic-pro "0.9.5661"]
+                 [org.postgresql/postgresql "9.3-1102-jdbc41"]])
