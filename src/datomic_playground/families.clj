@@ -1,6 +1,13 @@
 (ns datomic-playground.families
   (:require [datomic-playground.components.datomic :as sys]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [clojure.pprint :as pp]
+            [beicon.core :as rx])
+  (:import (java.util.concurrent BlockingQueue)))
+
+;http://blog.datomic.com/2013/10/the-transaction-report-queue.html
+;https://fuqua.io/blog/2014/05/pushing-database-changes-to-the-web-with-datomic/
+;tx-report-queue
 
 (def schema
   [{:db/ident :family/name
@@ -29,26 +36,50 @@
    {:family/name "Chloe" :family/sibling [:family/name "Jenny"]}
    {:family/name "Jenny" :family/sibling [:family/name "Chloe"]}])
 
-
-(sys/stop)
+;(sys/stop)
 (sys/start {:db-uri "datomic:mem://families"})
 (def conn (:conn sys/*db*))
 
-@(d/transact conn schema)
+;(def stream (rx/from-coll (d/tx-report-queue conn)))
 
-@(d/transact
-  conn
-  [{:family/name   "Mark"
-    :family/spouse {:family/name "Becky"}
-    :family/child  {:family/name "Chloe"}}])
+;(def stream
+;  (let [^BlockingQueue report-queue (d/tx-report-queue conn)]
+;    (rx/from-coll (repeatedly #(.take report-queue)))))
 
-(defn load-data [conn]
-  (d/transact conn schema)
-  (for [d data] @(d/transact conn [d])))
+;(def stream
+;  (rx/create (fn [sink]
+;               (sink 1)          ;; next with `1` as value
+;               (sink (rx/end 2)) ;; next with `2` as value and end the stream
+;               (fn []))))
+;
+;(rx/on-value stream #(println "v:" %))
 
-(load-data conn)
+;(rx/on-value stream #(println "v:" %))
+;
+;(defn change-monitor [conn]
+;  (future
+;    (let [^BlockingQueue report-queue (d/tx-report-queue conn)]
+;      (while true
+;        (let [{:keys [tx-data] :as report} (.take report-queue)]
+;          (pp/pprint [:REPORT! tx-data]))))))
+;
+;(change-monitor conn)
 
-(d/pull (d/db conn) '[*] [:family/name "Mark"])
-(d/pull (d/db conn) '[:family/name
-                      {:family/spouse 1}
-                      {:family/child 1}]  [:family/name "Mark"])
+;@(d/transact conn schema)
+;
+;@(d/transact
+;  conn
+;  [{:family/name   "Mark"
+;    :family/spouse {:family/name "Becky"}
+;    :family/child  {:family/name "Chloe"}}])
+
+;(defn load-data [conn]
+;  (d/transact conn schema)
+;  (for [d data] @(d/transact conn [d])))
+;
+;(load-data conn)
+;
+;(d/pull (d/db conn) '[*] [:family/name "Mark"])
+;(d/pull (d/db conn) '[:family/name
+;                      {:family/spouse 1}
+;                      {:family/child 1}]  [:family/name "Mark"])

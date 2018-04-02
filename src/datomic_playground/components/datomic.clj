@@ -3,7 +3,7 @@
             [datomic.api :as d]
             [taoensso.timbre :as timbre]))
 
-(defrecord DatomicDB [db-uri])
+(defrecord DatomicDB [db-uri delete-on-stop?])
 
 (extend-type DatomicDB
   component/Lifecycle
@@ -12,9 +12,10 @@
       (when db-exists?
         (timbre/info (str "Created db " db-uri)))
       (assoc component :conn (d/connect db-uri))))
-  (stop [{:keys [db-uri] :as component}]
+  (stop [{:keys [db-uri delete-on-stop?] :as component}]
     (do
-      (timbre/info (str "Deleted db? " (d/delete-database db-uri)))
+      (when delete-on-stop?
+        (timbre/info (str "Deleted db? " (d/delete-database db-uri))))
       (-> component
           (update :conn d/release)
           (assoc :conn nil)))))
