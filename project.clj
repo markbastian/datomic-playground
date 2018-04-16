@@ -13,4 +13,6 @@
                  [org.clojure/java.jdbc "0.7.5"]
                  [com.datomic/datomic-pro "0.9.5661"]
                  [org.postgresql/postgresql "9.3-1102-jdbc41"]
-                 [funcool/beicon "4.1.0"]])
+                 [funcool/beicon "4.1.0"]
+                 [clojure-csv "2.0.2"]
+                 [digest "1.4.8"]])

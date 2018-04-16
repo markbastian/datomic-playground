@@ -25,7 +25,7 @@
 
 (def schema (-> "datomic_playground/weather_schema.edn" io/resource slurp edn/read-string))
 
-(sys/stop)
+;(sys/stop)
 (sys/start {:db-uri "datomic:mem://weather"})
 (def conn (:conn sys/*db*))
 
