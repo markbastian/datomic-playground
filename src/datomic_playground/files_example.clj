@@ -6,7 +6,8 @@
             [clojure.instant :as instant]
             [digest]
             [clojure.java.io :as io]
-            [cider.inlined-deps.toolsreader.v1v1v1.clojure.tools.reader.edn :as edn]))
+            [cider.inlined-deps.toolsreader.v1v1v1.clojure.tools.reader.edn :as edn]
+            [clojure.pprint :as pp]))
 
 (defn kwize
   ([str] (kwize nil str))
@@ -29,14 +30,40 @@
          (cons fm)
          (cons {:db/id "datomic.tx" :db/txInstant txi}))))
 
-(sys/stop)
-(sys/start {:db-uri "datomic:mem://families"})
-(def conn (:conn sys/*db*))
+(defn trq-fn [_ {:keys [db-before db-after tx-data tempids]}]
+  #_(pp/pprint
+    (d/q
+      '[:find ?n .
+        :in $ ?e
+        :where
+        [?e :person/name ?n]]
+      db-after [:person/ssn "123-45-6789"]))
+  (pp/pprint
+    (d/q
+      '[:find ?n
+        :in $
+        :where
+        [?e :file/records ?r]
+        [?r :person/name ?n]]
+      db-after))
+  #_(pp/pprint
+    (d/pull-many db-after '[*] (distinct (map second tempids)))))
 
-@(d/transact conn (-> "datomic_playground/files_schema.edn" io/resource slurp edn/read-string))
-@(d/transact conn (load-data "data-2010-01-01.csv"))
-@(d/transact conn (load-data "data-2012-01-01.csv"))
-@(d/transact conn (load-data "data-2015-01-01.csv"))
+(sys/restart {:db-uri "datomic:mem://families"
+              :f trq-fn})
+(def conn (get-in sys/*db* [:datomic :conn]))
+
+(defn load-all [conn]
+  (doto conn
+    (d/transact-async (load-data "data-2010-01-01.csv"))
+    (d/transact-async (load-data "data-2012-01-01.csv"))
+    (d/transact-async (load-data "data-2015-01-01.csv"))))
+
+(load-all conn)
+
+;(let [{:keys [db-before db-after tx-data tempids]}
+;      @(d/transact conn (load-data "data-2015-01-01.csv"))]
+;  (pp/pprint (first tx-data) #_(d/entity db-after (first tx-data))))
 
 (->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
      :meta/source

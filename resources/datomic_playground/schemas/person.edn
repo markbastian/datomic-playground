@@ -1,21 +1,4 @@
 [{:db/id "datomic.tx" :db/txInstant #inst "2010-01-01"}
-
- {:db/ident :file/md5
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/unique :db.unique/identity}
- {:db/ident :file/name
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/many
-  :db/index true}
- {:db/ident :file/records
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many}
-
- {:db/ident :meta/source
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one}
-
  {:db/ident :person/ssn
   :db/valueType   :db.type/string
   :db/cardinality :db.cardinality/one
