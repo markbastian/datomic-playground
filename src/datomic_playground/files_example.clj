@@ -26,7 +26,7 @@
          (filter #(every? (complement empty?) %))
          (map #(zipmap cols %))
          (map #(update % :person/date instant/read-instant-date))
-         (map #(assoc % :meta/source (assoc fm :file/records %)))
+         (map #(assoc % :meta/source fm))
          (cons fm)
          (cons {:db/id "datomic.tx" :db/txInstant txi}))))
 
@@ -107,3 +107,22 @@
     [?e :meta/source ?src ?t]
     [?src :file/name ?f ?t]]
   (d/db conn) [:person/ssn "123-45-6789"])
+
+(->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
+     :meta/source
+     :file/md5)
+
+(d/pull
+  (d/db conn)
+  '[*
+    {:meta/source [:file/md5 {:meta/_source [:person/ssn]}]}]
+  [:person/ssn "123-45-6789"])
+
+(d/pull
+  (d/db conn)
+  '[*
+    {:meta/_source [:person/ssn]}]
+  [:file/md5 "079b28edae033e4e01f3cff009628283"])
+
+(->> (d/entity (d/db conn) [:file/md5 "079b28edae033e4e01f3cff009628283"])
+     :meta/_source)
