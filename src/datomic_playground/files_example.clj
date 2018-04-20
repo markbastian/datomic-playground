@@ -5,8 +5,6 @@
             [clojure.string :as cs]
             [clojure.instant :as instant]
             [digest]
-            [clojure.java.io :as io]
-            [cider.inlined-deps.toolsreader.v1v1v1.clojure.tools.reader.edn :as edn]
             [clojure.pprint :as pp]))
 
 (defn kwize
@@ -27,7 +25,7 @@
          (map #(zipmap cols %))
          (map #(update % :person/date instant/read-instant-date))
          (map #(assoc % :meta/source fm))
-         (cons fm)
+         ;Optional - set the transaction time. Must be monotonic.
          (cons {:db/id "datomic.tx" :db/txInstant txi}))))
 
 (defn trq-fn [_ {:keys [db-before db-after tx-data tempids]}]
