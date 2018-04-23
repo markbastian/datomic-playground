@@ -51,13 +51,93 @@
               :f trq-fn})
 (def conn (get-in sys/*db* [:datomic :conn]))
 
-(defn load-all [conn]
-  (doto conn
-    (d/transact-async (load-data "data-2010-01-01.csv"))
-    (d/transact-async (load-data "data-2012-01-01.csv"))
-    (d/transact-async (load-data "data-2015-01-01.csv"))))
+;(defn load-all [conn]
+;  (doto conn
+;    (d/transact-async (load-data "data-2010-01-01.csv"))
+;    (d/transact-async (load-data "data-2012-01-01.csv"))
+;    (d/transact-async (load-data "data-2015-01-01.csv"))))
+;
+;(load-all conn)
 
-(load-all conn)
+(defn subs-info [{:keys [db-before db-after tx-data tempids] :as r}]
+  (d/q
+    '[:find ?sn ?attr ?v
+      :in $ [[_ ?e]]
+      :where
+      [?e :person/subscription ?subs-entity]
+      [?subs-entity :subscription/fields ?attr]
+      [?subs-entity :subscription/name ?sn]
+      [?e ?attr ?v]]
+    db-after tempids))
+
+(let [{:keys [datomic trq]} (sys/restart {:db-uri "datomic:mem://tmp" :f trq-fn})
+      {:keys [conn]} datomic
+      data (load-data "data-2010-01-01.csv")
+      txa @(d/transact-async conn data)
+      txb
+      @(d/transact conn [{:person/ssn "123-45-6789"
+                          :person/subscription {:subscription/name :s0
+                                                :subscription/fields [:person/name
+                                                                      :person/zip-code]}}])
+      txc
+      @(d/transact conn [{:person/ssn "123-45-6789"
+                          :person/subscription {:subscription/name :s1
+                                                :subscription/fields [:person/name
+                                                                      :person/city]}}])
+      txd
+      @(d/transact conn [{:person/ssn "123-45-6789"
+                          :person/name "Mike"}])]
+  ;(d/pull-many b '[*] (mapv second d))
+  ;(d/q
+  ;  '[:find ?f
+  ;    :in $ [?entities]
+  ;    :where
+  ;    [?entities :person/subscription ?v
+  ;     ?v :subscription/fields ?f]]
+  ;  db-after (map second tempids))
+  ;(d/pull-many
+  ;  b
+  ;  '[:person/ssn
+  ;    {:person/subscription
+  ;     [:subscription/fields]}]
+  ;  (mapv second d))
+  ;(d/pull-many
+  ;  b
+  ;  '[{:person/_subscription [:person/ssn]} :subscription/fields]
+  ;  (mapv second d))
+  ;Works!!!!!
+  (subs-info txa)
+  (subs-info txb)
+  (subs-info txc)
+  ;(subs-info txd)
+  ;Was only one entity actually changed?
+  ;(d/q
+  ;  '[:find ?subs-entity ?a ?n
+  ;    :in $ [?subs-entity]
+  ;    :where
+  ;    [$ ?subs-entity ?a ?n]]
+  ;  b (mapv second d))
+  ;(d/q
+  ;  '[:find ?subs-entity
+  ;    :in $ [?subs-entity]
+  ;    :where
+  ;    [$ ?subs-entity]]
+  ;  b (mapv second d))
+  )
+
+[{:person/street-address "3 Bueno Blvd",
+  :person/state-code "NM",
+  :person/subscription [#:db{:id 17592186045424}],
+  :meta/source #:db{:id 17592186045421},
+  :person/date #inst"2010-05-30T00:00:00.000-00:00",
+  :person/city "Rio Rancho",
+  :person/name "Mark Bastian",
+  :db/id 17592186045420,
+  :person/zip-code "83713",
+  :person/ssn "123-45-6789"}
+ {:db/id 17592186045424,
+  :subscription/name :s0,
+  :subscription/fields [:person/name :person/zip-code]}]
 
 ;(let [{:keys [db-before db-after tx-data tempids]}
 ;      @(d/transact conn (load-data "data-2015-01-01.csv"))]

@@ -21,4 +21,7 @@
   :db/cardinality :db.cardinality/one}
  {:db/ident :person/zip-code
   :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one}]
+  :db/cardinality :db.cardinality/one}
+ {:db/ident :person/subscription
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many}]
