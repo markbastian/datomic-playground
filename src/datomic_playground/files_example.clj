@@ -26,7 +26,8 @@
          (map #(update % :person/date instant/read-instant-date))
          (map #(assoc % :meta/source fm))
          ;Optional - set the transaction time. Must be monotonic.
-         (cons {:db/id "datomic.tx" :db/txInstant txi}))))
+         ;(cons {:db/id "datomic.tx" :db/txInstant txi})
+         )))
 
 (defn trq-fn [_ {:keys [db-before db-after tx-data tempids]}]
   #_(pp/pprint
@@ -58,71 +59,80 @@
 ;    (d/transact-async (load-data "data-2015-01-01.csv"))))
 ;
 ;(load-all conn)
+#_
+(defn subs-info [{:keys [db-before db-after tx-data tempids] :as r}]
+  (pp/pprint tx-data)
+  (d/q
+    '[:find ?sn ?attr-after ?v-before ?v-after ?a ?b
+      :in $before $after [[?e ?tx-attr ?tx-val ?tx-time ?tx-assert]]
+      :where
+      [$after ?e :person/subscription ?subs-entity]
+      [$after ?subs-entity :subscription/fields ?attr-after ?a]
+      [$before ?subs-entity :subscription/fields _ ?b]
+      [$after ?subs-entity :subscription/name ?sn]
+      [$after ?e ?attr-after ?v-after]
+      [$before ?e ?attr-after ?v-before]
+      ;[(not= ?v-before ?v-after)]
+      [(not= ?v-before ?v-after)]
+      ]
+    db-before db-after tx-data))
 
 (defn subs-info [{:keys [db-before db-after tx-data tempids] :as r}]
   (d/q
-    '[:find ?sn ?attr ?v
-      :in $ [[_ ?e]]
+    '[:find ?sn ?tx-attr ?v-after
+      :in $before $after [[?e ?tx-attr-id ?tx-val ?tx-time ?tx-assert]]
       :where
-      [?e :person/subscription ?subs-entity]
-      [?subs-entity :subscription/fields ?attr]
-      [?subs-entity :subscription/name ?sn]
-      [?e ?attr ?v]]
-    db-after tempids))
+      [$after ?e :person/subscription ?subs-entity]
+      [$after ?subs-entity :subscription/name ?sn]
+      [$after ?tx-attr-id :db/ident ?tx-attr]
+      [$after ?subs-entity :subscription/fields ?tx-attr]
+      [$after ?e ?tx-attr ?v-after ?tx-time true]]
+    db-before db-after tx-data))
+
+(defn subs-infox [{:keys [db-before db-after tx-data tempids] :as r}]
+  (d/q
+    '[:find ?sn ?tx-val ?v-after
+      :in $before $after [[?subs-entity ?tx-attr-id ?tx-val ?tx-time ?tx-assert]]
+      :where
+      [$after ?e :person/subscription ?subs-entity]
+      [$after ?subs-entity :subscription/name ?sn]
+      [$after ?subs-entity :subscription/fields ?tx-val ?tx-time true]
+      [$after ?e ?tx-val ?v-after]]
+    db-before db-after tx-data))
 
 (let [{:keys [datomic trq]} (sys/restart {:db-uri "datomic:mem://tmp" :f trq-fn})
       {:keys [conn]} datomic
       data (load-data "data-2010-01-01.csv")
-      txa @(d/transact-async conn data)
+      ;txa @(d/transact-async conn data)
       txb
       @(d/transact conn [{:person/ssn "123-45-6789"
                           :person/subscription {:subscription/name :s0
                                                 :subscription/fields [:person/name
                                                                       :person/zip-code]}}])
+
+      txd
+      @(d/transact conn [{:person/ssn "123-45-6789"
+                          :person/name "Mike"}])
+      txa @(d/transact-async conn data)
+      ;txa @(d/transact-async conn data)
+      ;txc
+      ;@(d/transact conn [{:person/ssn "123-45-6789"
+      ;                    :person/subscription {:subscription/name :s1
+      ;                                          :subscription/fields [:person/name]}}])
       txc
       @(d/transact conn [{:person/ssn "123-45-6789"
                           :person/subscription {:subscription/name :s1
                                                 :subscription/fields [:person/name
                                                                       :person/city]}}])
-      txd
-      @(d/transact conn [{:person/ssn "123-45-6789"
-                          :person/name "Mike"}])]
-  ;(d/pull-many b '[*] (mapv second d))
-  ;(d/q
-  ;  '[:find ?f
-  ;    :in $ [?entities]
-  ;    :where
-  ;    [?entities :person/subscription ?v
-  ;     ?v :subscription/fields ?f]]
-  ;  db-after (map second tempids))
-  ;(d/pull-many
-  ;  b
-  ;  '[:person/ssn
-  ;    {:person/subscription
-  ;     [:subscription/fields]}]
-  ;  (mapv second d))
-  ;(d/pull-many
-  ;  b
-  ;  '[{:person/_subscription [:person/ssn]} :subscription/fields]
-  ;  (mapv second d))
-  ;Works!!!!!
-  (subs-info txa)
-  (subs-info txb)
-  (subs-info txc)
-  ;(subs-info txd)
-  ;Was only one entity actually changed?
-  ;(d/q
-  ;  '[:find ?subs-entity ?a ?n
-  ;    :in $ [?subs-entity]
-  ;    :where
-  ;    [$ ?subs-entity ?a ?n]]
-  ;  b (mapv second d))
-  ;(d/q
-  ;  '[:find ?subs-entity
-  ;    :in $ [?subs-entity]
-  ;    :where
-  ;    [$ ?subs-entity]]
-  ;  b (mapv second d))
+      ;txa
+      ;@(d/transact conn [{:person/ssn "123-45-6789"
+      ;                    :person/subscription {:subscription/name :s1
+      ;                                          :subscription/fields [:person/name]}}])
+      ]
+  ;(subs-info txa)
+  ;(subs-info txb)
+  ;(subs-info txa)
+  (into (subs-infox txc) (subs-info txc))
   )
 
 [{:person/street-address "3 Bueno Blvd",
@@ -143,64 +153,64 @@
 ;      @(d/transact conn (load-data "data-2015-01-01.csv"))]
 ;  (pp/pprint (first tx-data) #_(d/entity db-after (first tx-data))))
 
-(->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
-     :meta/source
-     :file/records
-     first
-     :db/id
-     (d/pull (d/db conn) '[*]))
-
-(d/q
-  '[:find ?a ?i
-    :in $
-    :where
-    [?e :person/street-address ?a ?t true]
-    [?t :db/txInstant ?i]]
-  (d/db conn))
-
-(d/q
-  '[:find ?a ?d ?i
-    :in $ ?e
-    :where
-    [?e :person/street-address ?a ?t true]
-    [?e :person/date ?d ?t true]
-    ;Transaction date
-    [?t :db/txInstant ?i]]
-  (d/history (d/db conn)) [:person/ssn "123-45-6789"])
-
-;All files asserting this source
-(d/q
-  '[:find ?f
-    :in $ ?e
-    :where
-    [?e :meta/source ?src ?t]
-    [?src :file/name ?f ?t]]
-  (d/history (d/db conn)) [:person/ssn "123-45-6789"])
-
-;Most recent source assertion
-(d/q
-  '[:find ?f
-    :in $ ?e
-    :where
-    [?e :meta/source ?src ?t]
-    [?src :file/name ?f ?t]]
-  (d/db conn) [:person/ssn "123-45-6789"])
-
-(->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
-     :meta/source
-     :file/md5)
-
-(d/pull
-  (d/db conn)
-  '[*
-    {:meta/source [:file/md5 {:meta/_source [:person/ssn]}]}]
-  [:person/ssn "123-45-6789"])
-
-(d/pull
-  (d/db conn)
-  '[*
-    {:meta/_source [:person/ssn]}]
-  [:file/md5 "079b28edae033e4e01f3cff009628283"])
-
-(->> (d/entity (d/db conn) [:file/md5 "079b28edae033e4e01f3cff009628283"])
-     :meta/_source)
+;(->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
+;     :meta/source
+;     :file/records
+;     first
+;     :db/id
+;     (d/pull (d/db conn) '[*]))
+;
+;(d/q
+;  '[:find ?a ?i
+;    :in $
+;    :where
+;    [?e :person/street-address ?a ?t true]
+;    [?t :db/txInstant ?i]]
+;  (d/db conn))
+;
+;(d/q
+;  '[:find ?a ?d ?i
+;    :in $ ?e
+;    :where
+;    [?e :person/street-address ?a ?t true]
+;    [?e :person/date ?d ?t true]
+;    ;Transaction date
+;    [?t :db/txInstant ?i]]
+;  (d/history (d/db conn)) [:person/ssn "123-45-6789"])
+;
+;;All files asserting this source
+;(d/q
+;  '[:find ?f
+;    :in $ ?e
+;    :where
+;    [?e :meta/source ?src ?t]
+;    [?src :file/name ?f ?t]]
+;  (d/history (d/db conn)) [:person/ssn "123-45-6789"])
+;
+;;Most recent source assertion
+;(d/q
+;  '[:find ?f
+;    :in $ ?e
+;    :where
+;    [?e :meta/source ?src ?t]
+;    [?src :file/name ?f ?t]]
+;  (d/db conn) [:person/ssn "123-45-6789"])
+;
+;(->> (d/entity (d/db conn) [:person/ssn "123-45-6789"])
+;     :meta/source
+;     :file/md5)
+;
+;(d/pull
+;  (d/db conn)
+;  '[*
+;    {:meta/source [:file/md5 {:meta/_source [:person/ssn]}]}]
+;  [:person/ssn "123-45-6789"])
+;
+;(d/pull
+;  (d/db conn)
+;  '[*
+;    {:meta/_source [:person/ssn]}]
+;  [:file/md5 "079b28edae033e4e01f3cff009628283"])
+;
+;(->> (d/entity (d/db conn) [:file/md5 "079b28edae033e4e01f3cff009628283"])
+;     :meta/_source)
