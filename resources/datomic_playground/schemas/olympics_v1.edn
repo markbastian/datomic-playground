@@ -1,0 +1,69 @@
+[#:db{:ident       :noc/name
+      :unique      :db.unique/identity
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :noc/region
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/many}
+
+ #:db{:ident       :athlete/id
+      ;:unique      :db.unique/identity
+      :valueType   :db.type/long
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/name
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/sex
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/sport
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/event
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/noc
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/team
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/games
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/city
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/season
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/year
+      :valueType   :db.type/long
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/height
+      :valueType   :db.type/double
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/age
+      :valueType   :db.type/long
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/weight
+      :valueType   :db.type/double
+      :cardinality :db.cardinality/one}
+
+ #:db{:ident       :athlete/medal
+      :valueType   :db.type/string
+      :cardinality :db.cardinality/one}]

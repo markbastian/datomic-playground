@@ -1,0 +1,211 @@
+[#:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/sport}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/noc}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/sex}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :city/name}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/city}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/name}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :team/name}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/medal}
+
+ #:db{:valueType   :db.type/long
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :year/value}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/many
+      :ident       :noc/region}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :region/name}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :season/name}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :noc/name}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :games/name}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :person/sex}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/event}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :medal/name}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/year}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/season}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :person/name}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/id}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/team}
+
+ #:db{:valueType   :db.type/double
+      :cardinality :db.cardinality/one
+      :ident       :athlete/height}
+
+ #:db{:valueType   :db.type/double
+      :cardinality :db.cardinality/one
+      :ident       :athlete/weight}
+
+ #:db{:valueType   :db.type/long
+      :cardinality :db.cardinality/one
+      :ident       :athlete/age}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :event/name}
+
+ #:db{:valueType   :db.type/ref
+      :cardinality :db.cardinality/one
+      :ident       :athlete/games}
+
+ #:db{:valueType   :db.type/string
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :sport/name}
+
+ #:db{:valueType   :db.type/long
+      :unique      :db.unique/identity
+      :cardinality :db.cardinality/one
+      :ident       :person/id}
+
+ {:db/id    #db/id [:db.part/user]
+  :db/ident :olympics/insert-noc
+  :db/fn    #db/fn
+                {:lang     "clojure"
+                 :params   [db noc-data]
+                 :requires [[clojure.string :as cs]]
+                 :code     (let [{:keys [noc region notes]} noc-data
+                                 regions (cond-> [] region (conj region) notes (conj notes))]
+                             [{:noc/name   noc
+                               :noc/region (map (fn [r] {:region/name r}) regions)}])}}
+
+ {:db/id    #db/id [:db.part/user]
+  :db/ident :olympics/extants
+  :db/fn    #db/fn
+                {:lang     "clojure"
+                 :params   [db athletes]
+                 :requires []
+                 :code     (let [id-fn (juxt :id :games :event)]
+                             (d/q
+                               '[:find ?id-value ?games-value ?event-value ?e
+                                 :in $ [[?id-value ?games-value ?event-value]]
+                                 :where
+                                 [?id :person/id ?id-value]
+                                 [?games :games/name ?games-value]
+                                 [?event :event/name ?event-value]
+                                 [?e :athlete/id ?id]
+                                 [?e :athlete/games ?games]
+                                 [?e :athlete/event ?event]]
+                               db (map id-fn athletes)))}}
+
+ {:db/id    #db/id [:db.part/user]
+  :db/ident :olympics/assign-ids
+  :db/fn    #db/fn
+                {:lang     "clojure"
+                 :params   [db athletes]
+                 :requires [[clojure.string :as cs]]
+                 :code     (let [extants (:db/fn (d/entity db [:db/ident :olympics/extants]))
+                                 id-fn (juxt :id :games :event)
+                                 id-map (reduce
+                                          (fn [m v] (assoc m (pop v) (peek v)))
+                                          {}
+                                          (extants db athletes))]
+                             (map (fn [athlete]
+                                    (let [v (id-fn athlete)]
+                                      (assoc athlete :db/id (id-map v (cs/join "-" v)))))
+                               athletes))}}
+
+ {:db/id    #db/id [:db.part/user]
+  :db/ident :olympics/normalize
+  :db/fn    #db/fn
+                {:lang     "clojure"
+                 :params   [athlete]
+                 :requires [[clojure.string :as cs]]
+                 :code     (let [{:keys [sport noc age sex name city year season event
+                                         team weight id games height medal] dbid :db/id} athlete]
+                             (cond-> {:db/id          dbid
+                                      :athlete/id     {:person/id id}
+                                      :athlete/name   {:person/name name}
+                                      :athlete/sex    {:person/sex sex}
+                                      :athlete/sport  {:sport/name sport}
+                                      :athlete/event  {:event/name event}
+                                      :athlete/noc    {:noc/name noc}
+                                      :athlete/team   {:team/name team}
+                                      :athlete/games  {:games/name games}
+                                      :athlete/city   {:city/name city}
+                                      :athlete/season {:season/name season}
+                                      :athlete/year   {:year/value year}}
+                               height (assoc :athlete/height (double height))
+                               age (assoc :athlete/age age)
+                               weight (assoc :athlete/weight (double weight))
+                               medal (assoc :athlete/medal {:medal/name medal})))}}
+
+ {:db/id    #db/id [:db.part/user]
+  :db/ident :olympics/insert-athletes
+  :db/fn    #db/fn
+                {:lang     "clojure"
+                 :params   [db athletes]
+                 :requires [[datomic.api :as d]]
+                 :code     (let [normalize (:db/fn (d/entity db [:db/ident :olympics/normalize]))
+                                 assign-ids (:db/fn (d/entity db [:db/ident :olympics/assign-ids]))]
+                             (map normalize (assign-ids db athletes)))}}
+ ]
