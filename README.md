@@ -21,7 +21,8 @@ Set up Storage:
 * https://docs.datomic.com/on-prem/storage.html
 
 Run the transactor by copying the template file and doing something like this with your tweaked template:
-bin/transactor ~/.datomic/sql-transactor-template.properties
+* bin/transactor ~/.datomic/sql-transactor-template.properties
+* bin/transactor -Xmx4g ~/.datomic/sql-transactor-template.properties
 
 Run the REPL and try it out. 
 

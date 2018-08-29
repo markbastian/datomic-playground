@@ -9,11 +9,13 @@
 
  #:db{:ident       :athlete/id
       ;:unique      :db.unique/identity
+      :index       true
       :valueType   :db.type/long
       :cardinality :db.cardinality/one}
 
  #:db{:ident       :athlete/name
       :valueType   :db.type/string
+      :index       true
       :cardinality :db.cardinality/one}
 
  #:db{:ident       :athlete/sex
@@ -21,6 +23,7 @@
       :cardinality :db.cardinality/one}
 
  #:db{:ident       :athlete/sport
+      :index       true
       :valueType   :db.type/string
       :cardinality :db.cardinality/one}
 
@@ -49,6 +52,7 @@
       :cardinality :db.cardinality/one}
 
  #:db{:ident       :athlete/year
+      :index       true
       :valueType   :db.type/long
       :cardinality :db.cardinality/one}
 
@@ -65,5 +69,6 @@
       :cardinality :db.cardinality/one}
 
  #:db{:ident       :athlete/medal
+      :index       true
       :valueType   :db.type/string
       :cardinality :db.cardinality/one}]
